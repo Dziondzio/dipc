@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DipcClient")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0-202605091701")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0-202605091709")]
 [assembly: System.Reflection.AssemblyProductAttribute("DipcClient")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DipcClient")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

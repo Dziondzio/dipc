@@ -5,6 +5,27 @@ namespace DipcClient;
 
 public static class TemperatureCollector
 {
+    private static readonly object _sync = new();
+    private static Computer? _computer;
+
+    static TemperatureCollector()
+    {
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try
+            {
+                lock (_sync)
+                {
+                    _computer?.Close();
+                    _computer = null;
+                }
+            }
+            catch
+            {
+            }
+        };
+    }
+
     public static List<TemperatureSensorInfo> GetTemperatures()
     {
         var sensors = new List<TemperatureSensorInfo>();
@@ -25,32 +46,25 @@ public static class TemperatureCollector
 
         try
         {
-            var computer = new Computer
+            lock (_sync)
             {
-                IsCpuEnabled = true,
-                IsGpuEnabled = true,
-                IsMotherboardEnabled = true,
-                IsStorageEnabled = true,
-                IsMemoryEnabled = true,
-                IsNetworkEnabled = false
-            };
-            try
-            {
-                computer.Open();
+                if (_computer is null)
+                {
+                    _computer = new Computer
+                    {
+                        IsCpuEnabled = true,
+                        IsGpuEnabled = true,
+                        IsMotherboardEnabled = true,
+                        IsStorageEnabled = true,
+                        IsMemoryEnabled = true,
+                        IsNetworkEnabled = false
+                    };
+                    _computer.Open();
+                }
 
-                foreach (var hardware in computer.Hardware)
+                foreach (var hardware in _computer.Hardware)
                 {
                     CollectHardwareTemps(hardware, list);
-                }
-            }
-            finally
-            {
-                try
-                {
-                    computer.Close();
-                }
-                catch
-                {
                 }
             }
         }

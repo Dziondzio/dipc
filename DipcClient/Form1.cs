@@ -32,6 +32,7 @@ public partial class Form1 : Form
     private Label? _navHeaderTitle;
     private Label? _navHeaderSubtitle;
     private PictureBox? _navHeaderLogo;
+    private Panel? _navContentHost;
     private TableLayoutPanel? _layoutDiskSensors;
     private Label? _lblDiskSensors;
     private Button? _btnRunCommand;
@@ -56,6 +57,8 @@ public partial class Form1 : Form
     private Label? _lblTitle;
     private Label? _lblSubtitle;
     private Panel? _aboutPanel;
+    private TableLayoutPanel? _layoutTempsLive;
+    private Label? _lblTempsLive;
 
     public Form1()
     {
@@ -96,6 +99,7 @@ public partial class Form1 : Form
         EnsureGroupedNavbar();
         EnsureHeaderBranding();
         EnsureAboutSection();
+        EnsureTempsLiveHeader();
         ApplyV2Style();
 
         gridEvents.MultiSelect = true;
@@ -173,8 +177,19 @@ public partial class Form1 : Form
 
         layoutRoot.BackColor = _surfaceAlt;
         layoutTop.BackColor = _surface;
-        layoutTop.Padding = new Padding(12, 10, 12, 10);
+        layoutTop.Padding = new Padding(12, 6, 12, 6);
         layoutOptions.Padding = new Padding(6);
+        try
+        {
+            if (layoutTop.RowStyles.Count >= 2)
+            {
+                layoutTop.RowStyles[0].Height = 40F;
+                layoutTop.RowStyles[1].Height = 20F;
+            }
+        }
+        catch
+        {
+        }
 
         StyleButton(btnRefresh, primary: true);
         StyleButton(btnExport, primary: true);
@@ -188,6 +203,7 @@ public partial class Form1 : Form
         lblStatus.Font = new Font(Font, FontStyle.Bold);
         lblStatus.ForeColor = _muted;
         lblStatus.Padding = new Padding(4, 0, 0, 0);
+        lblStatus.AutoEllipsis = true;
 
         if (_lblTitle is not null)
         {
@@ -246,6 +262,7 @@ public partial class Form1 : Form
             _navTree.Indent = 18;
             _navTree.DrawMode = TreeViewDrawMode.OwnerDrawAll;
             _navTree.HotTracking = false;
+            _navTree.Scrollable = true;
         }
 
         if (_navSplit is not null)
@@ -254,6 +271,12 @@ public partial class Form1 : Form
             _navSplit.SplitterWidth = 1;
             _navSplit.Panel1.BackColor = _surface;
             _navSplit.Panel2.BackColor = _surfaceAlt;
+            _navSplit.Panel2.Padding = new Padding(0);
+            if (_navContentHost is not null)
+            {
+                _navContentHost.Padding = new Padding(22, 14, 22, 14);
+                _navContentHost.BackColor = _surfaceAlt;
+            }
         }
 
         if (_navHeader is not null)
@@ -292,6 +315,11 @@ public partial class Form1 : Form
         }
 
         EnsureContentCards();
+
+        if (_navTree is not null && _navSplit is not null)
+        {
+            BeginInvoke(new Action(AutoSizeSidebarToContent));
+        }
     }
 
     private void StyleButton(Button button, bool primary)
@@ -424,6 +452,10 @@ public partial class Form1 : Form
         else
         {
             _tempsTimer.Stop();
+            if (_lblTempsLive is not null)
+            {
+                _lblTempsLive.Text = "Live: OFF";
+            }
         }
     }
 
@@ -440,7 +472,15 @@ public partial class Form1 : Form
             return;
         }
 
-        RefreshTemperaturesLive();
+        try
+        {
+            RefreshTemperaturesLive();
+        }
+        catch
+        {
+            try { _tempsTimer.Stop(); } catch { }
+            SetStatus("Temperatury: błąd (timer zatrzymany)");
+        }
     }
 
     private void RefreshTemperaturesLive()
@@ -476,10 +516,51 @@ public partial class Form1 : Form
                     Max = _tempsMinMax.ContainsKey(s.Name ?? "") ? $"{mm.max:0.#}" : null
                 };
             }).ToList();
+
+            if (_lblTempsLive is not null)
+            {
+                _lblTempsLive.Text = $"Live: ON • {DateTime.Now:HH:mm:ss} • Czujniki: {sensors.Count}";
+            }
         }
         catch
         {
         }
+    }
+
+    private void EnsureTempsLiveHeader()
+    {
+        if (_layoutTempsLive is not null || _lblTempsLive is not null)
+        {
+            return;
+        }
+
+        if (!tabTemps.Controls.Contains(gridTemps))
+        {
+            return;
+        }
+
+        tabTemps.Controls.Remove(gridTemps);
+
+        _layoutTempsLive = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        _layoutTempsLive.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        _layoutTempsLive.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        _lblTempsLive = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "Live: OFF",
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        _layoutTempsLive.Controls.Add(_lblTempsLive, 0, 0);
+        _layoutTempsLive.Controls.Add(gridTemps, 0, 1);
+        tabTemps.Controls.Add(_layoutTempsLive);
     }
 
     private void btnRefresh_Click(object? sender, EventArgs e)
@@ -780,6 +861,20 @@ public partial class Form1 : Form
             if (result is null)
             {
                 SetStatus("Brak informacji o aktualizacji");
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                SetStatus("Aktualizacja: błąd");
+                MessageBox.Show(this, result.ErrorMessage, "Aktualizacja", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (!string.IsNullOrWhiteSpace(result.ReleasePageUrl))
+                {
+                    var askOpen = MessageBox.Show(this, "Otworzyć stronę release na GitHub?", "Aktualizacja", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (askOpen == DialogResult.Yes)
+                    {
+                        OpenUrl(result.ReleasePageUrl);
+                    }
+                }
                 return;
             }
 
@@ -1637,13 +1732,21 @@ public partial class Form1 : Form
             layoutRoot.Controls.Remove(tabs);
         }
 
+        _navContentHost = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(22, 14, 22, 14),
+            Margin = new Padding(0)
+        };
         tabs.Dock = DockStyle.Fill;
-        _navSplit.Panel2.Controls.Add(tabs);
+        _navContentHost.Controls.Add(tabs);
+        _navSplit.Panel2.Controls.Add(_navContentHost);
         layoutRoot.Controls.Add(_navSplit, 0, 1);
 
         BuildNavbarTree();
         tabs.SelectedIndexChanged += tabs_SelectedIndexChanged_NavSync;
         SyncNavbarSelectionFromTab();
+        BeginInvoke(new Action(AutoSizeSidebarToContent));
     }
 
     private void BuildNavbarTree()
@@ -1743,24 +1846,30 @@ public partial class Form1 : Form
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 2,
-            Margin = new Padding(0)
+            Margin = new Padding(10, 0, 0, 0),
+            Padding = new Padding(0, 2, 0, 2)
         };
         host.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         host.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
-        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
-        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
 
         _lblTitle = new Label
         {
             Dock = DockStyle.Fill,
             Text = "DIPC",
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = new Padding(0)
         };
         _lblSubtitle = new Label
         {
             Dock = DockStyle.Fill,
             Text = "Diagnostyka i serwis Windows",
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = new Padding(0),
+            Padding = new Padding(0, 1, 0, 0)
         };
 
         _picLogo = new PictureBox
@@ -1798,6 +1907,67 @@ public partial class Form1 : Form
 
         layoutTop.Controls.Add(host, 3, 0);
         layoutTop.SetRowSpan(host, 2);
+
+        try
+        {
+            layoutTop.SetColumnSpan(lblStatus, 3);
+        }
+        catch
+        {
+        }
+    }
+
+    private void AutoSizeSidebarToContent()
+    {
+        if (_navTree is null || _navSplit is null)
+        {
+            return;
+        }
+
+        if (_navTree.Nodes.Count == 0)
+        {
+            return;
+        }
+
+        int MeasureNode(TreeNode n, int max)
+        {
+            var isGroup = n.Parent is null;
+            var font = isGroup ? (_navGroupFont ?? Font) : Font;
+            var text = isGroup ? n.Text.ToUpperInvariant() : n.Text;
+            var textSize = TextRenderer.MeasureText(text, font);
+
+            var left = 18 + (n.Level * _navTree.Indent) + (isGroup ? 8 : 18);
+            var rightPad = 24;
+            max = Math.Max(max, left + textSize.Width + rightPad);
+
+            foreach (TreeNode c in n.Nodes)
+            {
+                max = MeasureNode(c, max);
+            }
+
+            return max;
+        }
+
+        var needed = 0;
+        foreach (TreeNode n in _navTree.Nodes)
+        {
+            needed = MeasureNode(n, needed);
+        }
+
+        needed = Math.Max(needed, 210);
+
+        var maxAllowed = Math.Max(220, ClientSize.Width - 520);
+        var target = Math.Min(needed, maxAllowed);
+
+        if (target > _navSplit.Panel1MinSize)
+        {
+            _navSplit.Panel1MinSize = Math.Min(target, 420);
+        }
+
+        if (_navSplit.SplitterDistance != target)
+        {
+            _navSplit.SplitterDistance = target;
+        }
     }
 
     private void EnsureAboutSection()

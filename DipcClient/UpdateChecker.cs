@@ -10,19 +10,44 @@ public static class UpdateChecker
 
     public static async Task<UpdateCheckResult?> CheckAsync(CancellationToken cancellationToken)
     {
+        var currentInfo = GetCurrentVersionString();
+        var releasesPage = $"https://github.com/{GitHubRepo}/releases/latest";
+
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("DIPC/1.0 (Windows)");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd($"DIPC/{currentInfo} (Windows)");
+            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+            http.DefaultRequestHeaders.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-            var json = await http.GetStringAsync(LatestReleaseApiUri, cancellationToken).ConfigureAwait(false);
-            var rel = JsonSerializer.Deserialize<GitHubRelease>(json);
-            if (rel is null || string.IsNullOrWhiteSpace(rel.TagName))
+            using var req = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUri);
+            using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!resp.IsSuccessStatusCode)
             {
-                return null;
+                var msg = $"Nie udało się pobrać informacji o aktualizacji z GitHub.\n\nRepo: {GitHubRepo}\nHTTP: {(int)resp.StatusCode} {resp.ReasonPhrase}\n\nJeśli to limit GitHuba (rate limit), spróbuj ponownie za kilka minut.";
+                return new UpdateCheckResult
+                {
+                    CurrentVersion = currentInfo,
+                    LatestVersion = "",
+                    ReleasePageUrl = releasesPage,
+                    ErrorMessage = msg
+                };
             }
 
-            var currentInfo = GetCurrentVersionString();
+            var rel = JsonSerializer.Deserialize<GitHubRelease>(body);
+            if (rel is null || string.IsNullOrWhiteSpace(rel.TagName))
+            {
+                return new UpdateCheckResult
+                {
+                    CurrentVersion = currentInfo,
+                    LatestVersion = "",
+                    ReleasePageUrl = releasesPage,
+                    ErrorMessage = $"GitHub zwrócił niepoprawną odpowiedź (brak tag_name).\n\nRepo: {GitHubRepo}"
+                };
+            }
+
             var latestRaw = rel.TagName.Trim().TrimStart('v', 'V');
 
             var portable = PickAsset(rel.Assets, isPortable: true);
@@ -43,13 +68,19 @@ public static class UpdateChecker
                 PortableSha256 = portableSha,
                 InstallerSha256 = installerSha,
                 Notes = rel.Body,
-                ReleasePageUrl = rel.HtmlUrl,
+                ReleasePageUrl = string.IsNullOrWhiteSpace(rel.HtmlUrl) ? releasesPage : rel.HtmlUrl,
                 IsUpdateAvailable = IsUpdateAvailable(currentInfo, latestRaw)
             };
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            return new UpdateCheckResult
+            {
+                CurrentVersion = currentInfo,
+                LatestVersion = "",
+                ReleasePageUrl = releasesPage,
+                ErrorMessage = $"Błąd sprawdzania aktualizacji:\n{ex.Message}\n\nRepo: {GitHubRepo}"
+            };
         }
     }
 
@@ -178,6 +209,7 @@ public sealed class UpdateCheckResult
     public string? InstallerSha256 { get; init; }
     public string? Notes { get; init; }
     public string? ReleasePageUrl { get; init; }
+    public string? ErrorMessage { get; init; }
     public bool IsUpdateAvailable { get; init; }
 }
 

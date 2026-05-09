@@ -1,2 +1,0 @@
-C:\Users\konra\Desktop\dipc\DipcClient\bin\Release\net8.0-windows\win-x64\publish\DipcClient.pdb
-C:\Users\konra\Desktop\dipc\DipcClient\bin\Release\net8.0-windows\win-x64\publish\DipcClient.exe

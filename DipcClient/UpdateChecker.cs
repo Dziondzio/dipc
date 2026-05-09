@@ -5,7 +5,7 @@ namespace DipcClient;
 
 public static class UpdateChecker
 {
-    private static string GitHubRepo => (Environment.GetEnvironmentVariable("DIPC_GITHUB_REPO") ?? "konra/dipc").Trim();
+    private static string GitHubRepo => (Environment.GetEnvironmentVariable("DIPC_GITHUB_REPO") ?? "Dziondzio/dipc").Trim();
     private static Uri LatestReleaseApiUri => new($"https://api.github.com/repos/{GitHubRepo}/releases/latest");
 
     public static async Task<UpdateCheckResult?> CheckAsync(CancellationToken cancellationToken)

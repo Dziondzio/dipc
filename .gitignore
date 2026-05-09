@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+dist/
+.tmpbuild/
+*.user
+*.suo
+*.cache
+*.pdb
+*.log
+*.tmp

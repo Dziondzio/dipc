@@ -58,7 +58,7 @@ $isccCandidates = @(
 $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $iss = Join-Path $root "DIPC.iss"
 
-if (Test-Path $iss -and -not [string]::IsNullOrWhiteSpace($iscc)) {
+if ((Test-Path $iss) -and -not [string]::IsNullOrWhiteSpace($iscc)) {
     & $iscc "/DMyAppVersion=$version" "/DSourceExe=$portablePath" $iss | Out-Host
     $installerPath = Join-Path $outFull "DIPC_Installer_$version.exe"
     if (Test-Path $installerPath) {

@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "DipcClient/1.0.0-202605091701": {
+      "DipcClient/1.0.0-202605091724": {
         "dependencies": {
           "DocumentFormat.OpenXml": "3.2.0",
           "LibreHardwareMonitorLib": "0.9.4",
@@ -389,7 +389,7 @@
     }
   },
   "libraries": {
-    "DipcClient/1.0.0-202605091701": {
+    "DipcClient/1.0.0-202605091724": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

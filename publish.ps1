@@ -1,21 +1,15 @@
 param(
     [string]$Runtime = "win-x64",
     [string]$Configuration = "Release",
-    [string]$BaseUrl = "https://cdn.dziondzio.xyz/dipc/",
-    [string]$Notes = "",
-    [string]$OutDir = "dist",
-    [string]$VpsScpTarget = "",
-    [string]$VpsRemoteDir = ""
+    [string]$OutDir = "dist"
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $csproj = Join-Path $root "DipcClient\DipcClient.csproj"
-$latestJson = Join-Path $root "DipcServer\wwwroot\dipc\latest.json"
 
 if (-not (Test-Path $csproj)) { throw "Brak: $csproj" }
-if (-not (Test-Path $latestJson)) { throw "Brak: $latestJson" }
 
 [xml]$xml = Get-Content $csproj
 $versionPrefix = $xml.Project.PropertyGroup.VersionPrefix | Select-Object -First 1
@@ -47,24 +41,13 @@ $portablePath = Join-Path $outFull $portableName
 Copy-Item -Force $publishExe $portablePath
 
 $sha = (Get-FileHash -Algorithm SHA256 -Path $portablePath).Hash
-$downloadUrl = ($BaseUrl.TrimEnd('/') + "/" + $portableName)
-
-$manifestObj = [ordered]@{
-    version    = $version
-    downloadUrl = $downloadUrl
-    sha256     = $sha
-    notes      = $Notes
-}
-
-$manifestJson = ($manifestObj | ConvertTo-Json -Depth 3)
-Set-Content -Encoding UTF8 -Path $latestJson -Value $manifestJson
+Set-Content -Encoding ascii -Path ($portablePath + ".sha256") -Value $sha
 
 Write-Host ""
 Write-Host "Gotowe:"
 Write-Host "  Portable: $portablePath"
 Write-Host "  SHA256:   $sha"
-Write-Host "  Manifest: $latestJson"
-Write-Host "  URL:      $downloadUrl"
+Write-Host "  SHA file: $($portablePath + '.sha256')"
 
 Write-Host ""
 Write-Host "Installer (Inno Setup):"
@@ -77,13 +60,15 @@ $iss = Join-Path $root "DIPC.iss"
 
 if (Test-Path $iss -and -not [string]::IsNullOrWhiteSpace($iscc)) {
     & $iscc "/DMyAppVersion=$version" "/DSourceExe=$portablePath" $iss | Out-Host
-    Write-Host "  Zbudowano installer (sprawdź folder: $outFull)"
+    $installerPath = Join-Path $outFull "DIPC_Installer_$version.exe"
+    if (Test-Path $installerPath) {
+        $installerSha = (Get-FileHash -Algorithm SHA256 -Path $installerPath).Hash
+        Set-Content -Encoding ascii -Path ($installerPath + ".sha256") -Value $installerSha
+        Write-Host "  Installer: $installerPath"
+        Write-Host "  SHA256:    $installerSha"
+    } else {
+        Write-Host "  Zbudowano installer (sprawdź folder: $outFull)"
+    }
 } else {
     Write-Host "  Pominięto (brak DIPC.iss lub ISCC.exe)."
-}
-
-if (-not [string]::IsNullOrWhiteSpace($VpsScpTarget) -and -not [string]::IsNullOrWhiteSpace($VpsRemoteDir)) {
-    Write-Host ""
-    Write-Host "Upload na VPS (scp):"
-    Write-Host "  scp `"$portablePath`" `"$latestJson`" $VpsScpTarget:`"$VpsRemoteDir`""
 }

@@ -64,3 +64,4 @@ c:\Users\konra\Desktop\dipc\.tmpbuild\Release\net8.0-windows\DipcClient.deps.jso
 c:\Users\konra\Desktop\dipc\.tmpbuild\Release\net8.0-windows\DipcClient.runtimeconfig.json
 c:\Users\konra\Desktop\dipc\.tmpbuild\Release\net8.0-windows\DipcClient.dll
 c:\Users\konra\Desktop\dipc\.tmpbuild\Release\net8.0-windows\DipcClient.pdb
+C:\Users\konra\Desktop\dipc\DipcClient\obj\Release\net8.0-windows\DipcClient.sourcelink.json

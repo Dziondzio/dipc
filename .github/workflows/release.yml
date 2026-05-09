@@ -52,11 +52,23 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y --no-progress
-          $iscc = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          $cmd = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+          $iscc = $null
+          if ($cmd -and (Test-Path -LiteralPath $cmd.Source)) { $iscc = $cmd.Source }
+          if (-not $iscc) {
+            $candidates = @(
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+              "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+              "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+              "$env:LOCALAPPDATA\Programs\Inno Setup\ISCC.exe"
+            ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+            if ($candidates.Count -gt 0) { $iscc = $candidates[0] }
+          }
+          if (-not $iscc) {
+            throw "ISCC.exe not found. Tried PATH + standard install locations."
+          }
           $portable = Resolve-Path ".\dist\DIPC_Portable_${{ steps.v.outputs.version }}.exe"
-          & $iscc "/DMyAppVersion=${{ steps.v.outputs.version }}" "/DSourceExe=$portable" .\DIPC.iss
+          & $iscc "/DMyAppVersion=${{ steps.v.outputs.version }}" "/DSourceExe=$portable" "/O$((Resolve-Path .\dist).Path)" .\DIPC.iss
           $installer = Resolve-Path ".\dist\DIPC_Installer_${{ steps.v.outputs.version }}.exe"
           (Get-FileHash -Algorithm SHA256 -Path $installer).Hash | Set-Content -Encoding ascii -Path "$installer.sha256"
 

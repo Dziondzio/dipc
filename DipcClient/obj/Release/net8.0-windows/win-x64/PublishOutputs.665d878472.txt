@@ -1,0 +1,2 @@
+C:\Users\konra\Desktop\dipc\out\portable_exe_only\DipcClient.pdb
+C:\Users\konra\Desktop\dipc\out\portable_exe_only\DipcClient.exe

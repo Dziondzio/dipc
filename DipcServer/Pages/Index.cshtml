@@ -1,0 +1,38 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "DIPC - Raporty";
+}
+
+<h1>DIPC - Raporty</h1>
+
+@if (Model.Machines.Count == 0)
+{
+    <p>Brak raportów. Wyślij dane z aplikacji klienckiej.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Komputer</th>
+            <th>Machine ID</th>
+            <th>Ostatnio</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var m in Model.Machines)
+        {
+            <tr>
+                <td>
+                    <a asp-page="/Report" asp-route-machineId="@m.MachineId">
+                        @(string.IsNullOrWhiteSpace(m.ComputerName) ? "(brak nazwy)" : m.ComputerName)
+                    </a>
+                </td>
+                <td>@m.MachineId</td>
+                <td>@m.LastReceivedAtUtc.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

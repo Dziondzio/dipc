@@ -1,0 +1,40 @@
+@page "{machineId}"
+@model DipcServer.Pages.ReportModel
+@{
+    ViewData["Title"] = "Raport";
+}
+
+<div class="mb-3">
+    <a asp-page="/Index">← Lista komputerów</a>
+</div>
+
+<h1>Raport</h1>
+<p><strong>Machine ID:</strong> @Model.MachineId</p>
+
+@if (Model.Stored is not null)
+{
+    <p><strong>Odebrano:</strong> @Model.Stored.ReceivedAtUtc.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss") UTC</p>
+}
+
+@if (Model.Report is not null)
+{
+    <h2>Podsumowanie</h2>
+    <table class="table table-sm">
+        <tbody>
+        <tr><th>Komputer</th><td>@Model.Report.ComputerName</td></tr>
+        <tr><th>Użytkownik</th><td>@Model.Report.UserName</td></tr>
+        <tr><th>Windows</th><td>@($"{Model.Report.Os.WindowsProductName ?? Model.Report.Os.Caption} {Model.Report.Os.DisplayVersion}".Trim())</td></tr>
+        <tr><th>CPU</th><td>@Model.Report.Cpu.Name</td></tr>
+        <tr><th>GPU</th><td>@string.Join(", ", Model.Report.Gpus.Select(g => g.Name).Where(s => !string.IsNullOrWhiteSpace(s)))</td></tr>
+        <tr><th>RAM</th><td>@ReportModel.FormatBytes(Model.Report.Ram.TotalBytes)</td></tr>
+        <tr><th>Płyta</th><td>@($"{Model.Report.Motherboard.Manufacturer} {Model.Report.Motherboard.Product}".Trim())</td></tr>
+        <tr><th>Model</th><td>@($"{Model.Report.Motherboard.SystemManufacturer} {Model.Report.Motherboard.SystemModel}".Trim())</td></tr>
+        <tr><th>BIOS Mode</th><td>@Model.Report.Security.FirmwareType</td></tr>
+        <tr><th>Secure Boot</th><td>@(Model.Report.Security.SecureBootEnabled is null ? "" : (Model.Report.Security.SecureBootEnabled.Value ? "Włączone" : "Wyłączone"))</td></tr>
+        <tr><th>TPM</th><td>@(Model.Report.Security.TpmPresent is null ? "" : (Model.Report.Security.TpmPresent.Value ? "Jest" : "Brak"))</td></tr>
+        </tbody>
+    </table>
+}
+
+<h2>JSON</h2>
+<pre style="white-space: pre-wrap;">@Model.JsonPretty</pre>

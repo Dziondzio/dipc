@@ -11,6 +11,10 @@
 #define SourceExe "dist\\DIPC.exe"
 #endif
 
+#ifndef SetupIcon
+#define SetupIcon ""
+#endif
+
 [Setup]
 AppId={{5D36D6C5-BA35-4D4A-9C71-6A6AC4D57F2F}
 AppName={#MyAppName}
@@ -23,6 +27,9 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
+#if SetupIcon != ""
+SetupIconFile={#SetupIcon}
+#endif
 OutputDir=dist
 OutputBaseFilename=DIPC_Installer_{#MyAppVersion}
 Compression=lzma

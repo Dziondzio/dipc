@@ -42,7 +42,28 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path .\dist | Out-Null
-          dotnet publish .\DipcClient\DipcClient.csproj -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:IncludeNativeLibrariesForSelfExtract=true -p:VersionSuffix=${{ steps.v.outputs.suffix }}
+          $logo = Resolve-Path .\dipclogo.png
+          $icon = Join-Path $env:RUNNER_TEMP "dipc_app.ico"
+          Add-Type -AssemblyName System.Drawing
+          $bmp = [System.Drawing.Bitmap]::FromFile($logo.Path)
+          $size = 256
+          $resized = New-Object System.Drawing.Bitmap $size, $size
+          $g = [System.Drawing.Graphics]::FromImage($resized)
+          $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+          $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+          $g.Clear([System.Drawing.Color]::Transparent)
+          $g.DrawImage($bmp, 0, 0, $size, $size)
+          $g.Dispose()
+          $h = $resized.GetHicon()
+          $ico = [System.Drawing.Icon]::FromHandle($h)
+          $fs = [System.IO.File]::Open($icon, [System.IO.FileMode]::Create)
+          $ico.Save($fs)
+          $fs.Close()
+          $ico.Dispose()
+          $resized.Dispose()
+          $bmp.Dispose()
+          dotnet publish .\DipcClient\DipcClient.csproj -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:IncludeNativeLibrariesForSelfExtract=true -p:ApplicationIcon=$icon -p:VersionSuffix=${{ steps.v.outputs.suffix }}
           $src = ".\DipcClient\bin\Release\net8.0-windows\win-x64\publish\DipcClient.exe"
           $dst = ".\dist\DIPC_Portable_${{ steps.v.outputs.version }}.exe"
           Copy-Item -Force $src $dst
@@ -67,8 +88,29 @@ jobs:
           if (-not $iscc) {
             throw "ISCC.exe not found. Tried PATH + standard install locations."
           }
+          $logo = Resolve-Path .\dipclogo.png
+          $icon = Join-Path $env:RUNNER_TEMP "dipc_setup.ico"
+          Add-Type -AssemblyName System.Drawing
+          $bmp = [System.Drawing.Bitmap]::FromFile($logo.Path)
+          $size = 256
+          $resized = New-Object System.Drawing.Bitmap $size, $size
+          $g = [System.Drawing.Graphics]::FromImage($resized)
+          $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+          $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+          $g.Clear([System.Drawing.Color]::Transparent)
+          $g.DrawImage($bmp, 0, 0, $size, $size)
+          $g.Dispose()
+          $h = $resized.GetHicon()
+          $ico = [System.Drawing.Icon]::FromHandle($h)
+          $fs = [System.IO.File]::Open($icon, [System.IO.FileMode]::Create)
+          $ico.Save($fs)
+          $fs.Close()
+          $ico.Dispose()
+          $resized.Dispose()
+          $bmp.Dispose()
           $portable = Resolve-Path ".\dist\DIPC_Portable_${{ steps.v.outputs.version }}.exe"
-          & $iscc "/DMyAppVersion=${{ steps.v.outputs.version }}" "/DSourceExe=$portable" "/O$((Resolve-Path .\dist).Path)" .\DIPC.iss
+          & $iscc "/DSetupIcon=$icon" "/DMyAppVersion=${{ steps.v.outputs.version }}" "/DSourceExe=$portable" "/O$((Resolve-Path .\dist).Path)" .\DIPC.iss
           $installer = Resolve-Path ".\dist\DIPC_Installer_${{ steps.v.outputs.version }}.exe"
           (Get-FileHash -Algorithm SHA256 -Path $installer).Hash | Set-Content -Encoding ascii -Path "$installer.sha256"
 

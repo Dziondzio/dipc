@@ -61,17 +61,55 @@ $version = "$versionPrefix-$suffix"
 $outFull = Join-Path $root $OutDir
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 
+$logoPng = Join-Path $root "dipclogo.png"
+$iconIco = Join-Path $root ".tmpbuild\app.ico"
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $iconIco) | Out-Null
+if (Test-Path $logoPng) {
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $bmp = [System.Drawing.Bitmap]::FromFile($logoPng)
+        $size = 256
+        $resized = New-Object System.Drawing.Bitmap $size, $size
+        $g = [System.Drawing.Graphics]::FromImage($resized)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+        $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $g.Clear([System.Drawing.Color]::Transparent)
+        $g.DrawImage($bmp, 0, 0, $size, $size)
+        $g.Dispose()
+
+        $h = $resized.GetHicon()
+        $ico = [System.Drawing.Icon]::FromHandle($h)
+        $fs = [System.IO.File]::Open($iconIco, [System.IO.FileMode]::Create)
+        $ico.Save($fs)
+        $fs.Close()
+        $ico.Dispose()
+        $resized.Dispose()
+        $bmp.Dispose()
+    } catch {
+        $iconIco = $null
+    }
+} else {
+    $iconIco = $null
+}
+
 Write-Host "Wersja: $version"
 Write-Host "Publikowanie portable..."
 
-dotnet publish $csproj `
-    -c $Configuration `
-    -r $Runtime `
-    -p:SelfContained=true `
-    -p:PublishSingleFile=true `
-    -p:PublishTrimmed=false `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:VersionSuffix=$suffix | Out-Host
+$publishArgs = @(
+    "publish", $csproj,
+    "-c", $Configuration,
+    "-r", $Runtime,
+    "-p:SelfContained=true",
+    "-p:PublishSingleFile=true",
+    "-p:PublishTrimmed=false",
+    "-p:IncludeNativeLibrariesForSelfExtract=true",
+    "-p:VersionSuffix=$suffix"
+)
+if ($iconIco -and (Test-Path $iconIco)) {
+    $publishArgs += "-p:ApplicationIcon=$iconIco"
+}
+& dotnet @publishArgs | Out-Host
 
 $publishExe = Join-Path $root "DipcClient\bin\$Configuration\net8.0-windows\$Runtime\publish\DipcClient.exe"
 if (-not (Test-Path $publishExe)) { throw "Brak pliku publish: $publishExe" }
@@ -116,6 +154,9 @@ if (-not (Test-Path $iss)) {
         "/O$outFull",
         $iss
     )
+    if ($iconIco -and (Test-Path $iconIco)) {
+        $args = @("/DSetupIcon=$iconIco") + $args
+    }
     $p = Start-Process -FilePath $iscc -ArgumentList $args -Wait -NoNewWindow -PassThru
     if ($p.ExitCode -ne 0) {
         throw "ISCC.exe zakonczyl sie kodem $($p.ExitCode)"

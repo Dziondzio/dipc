@@ -27,6 +27,11 @@ public partial class Form1 : Form
     private SplitContainer? _navSplit;
     private TreeView? _navTree;
     private bool _navSync;
+    private TreeNode? _navHoverNode;
+    private Panel? _navHeader;
+    private Label? _navHeaderTitle;
+    private Label? _navHeaderSubtitle;
+    private PictureBox? _navHeaderLogo;
     private TableLayoutPanel? _layoutDiskSensors;
     private Label? _lblDiskSensors;
     private Button? _btnRunCommand;
@@ -39,10 +44,29 @@ public partial class Form1 : Form
     private ContextMenuStrip? _mfgContextMenu;
     private ToolStripMenuItem? _mfgMenuOpen;
     private ToolStripMenuItem? _mfgMenuSearch;
+    private readonly Color _accent = Color.FromArgb(13, 110, 253);
+    private readonly Color _accentLight = Color.FromArgb(231, 241, 255);
+    private readonly Color _surface = Color.White;
+    private readonly Color _surfaceAlt = Color.FromArgb(245, 246, 250);
+    private readonly Color _text = Color.FromArgb(33, 37, 41);
+    private readonly Color _muted = Color.FromArgb(108, 117, 125);
+    private readonly Color _border = Color.FromArgb(222, 226, 230);
+    private Font? _navGroupFont;
+    private PictureBox? _picLogo;
+    private Label? _lblTitle;
+    private Label? _lblSubtitle;
+    private Panel? _aboutPanel;
 
     public Form1()
     {
         InitializeComponent();
+        try
+        {
+            Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? Icon;
+        }
+        catch
+        {
+        }
     }
     private void Form1_Load(object? sender, EventArgs e)
     {
@@ -70,6 +94,8 @@ public partial class Form1 : Form
 
         EnsureManufacturerContextMenus();
         EnsureGroupedNavbar();
+        EnsureHeaderBranding();
+        EnsureAboutSection();
         ApplyV2Style();
 
         gridEvents.MultiSelect = true;
@@ -114,8 +140,11 @@ public partial class Form1 : Form
     private void ApplyV2Style()
     {
         Font = new Font("Segoe UI", 9F);
-        BackColor = Color.FromArgb(245, 246, 250);
-        ForeColor = Color.FromArgb(33, 37, 41);
+        BackColor = _surfaceAlt;
+        ForeColor = _text;
+        MinimumSize = new Size(980, 680);
+        Text = "DIPC";
+        _navGroupFont ??= new Font(Font.FontFamily, 8.5F, FontStyle.Bold);
 
         if (_navTree is null)
         {
@@ -138,9 +167,14 @@ public partial class Form1 : Form
 
         foreach (var tp in tabs.TabPages.Cast<TabPage>())
         {
-            tp.BackColor = Color.FromArgb(245, 246, 250);
-            tp.Padding = new Padding(10);
+            tp.BackColor = _surfaceAlt;
+            tp.Padding = new Padding(12);
         }
+
+        layoutRoot.BackColor = _surfaceAlt;
+        layoutTop.BackColor = _surface;
+        layoutTop.Padding = new Padding(12, 10, 12, 10);
+        layoutOptions.Padding = new Padding(6);
 
         StyleButton(btnRefresh, primary: true);
         StyleButton(btnExport, primary: true);
@@ -152,9 +186,30 @@ public partial class Form1 : Form
         StyleButton(btnApplyPowerPlan, primary: false);
 
         lblStatus.Font = new Font(Font, FontStyle.Bold);
+        lblStatus.ForeColor = _muted;
+        lblStatus.Padding = new Padding(4, 0, 0, 0);
 
-        statusStrip.BackColor = Color.FromArgb(245, 246, 250);
+        if (_lblTitle is not null)
+        {
+            _lblTitle.Font = new Font(Font.FontFamily, 14F, FontStyle.Bold);
+            _lblTitle.ForeColor = _text;
+        }
+        if (_lblSubtitle is not null)
+        {
+            _lblSubtitle.Font = new Font(Font.FontFamily, 9F, FontStyle.Regular);
+            _lblSubtitle.ForeColor = _muted;
+        }
+
+        statusStrip.BackColor = _surfaceAlt;
         statusStrip.ForeColor = ForeColor;
+        statusStrip.SizingGrip = false;
+
+        StyleTextBox(txtEventFilter);
+        StyleComboBox(cmbEventLevel);
+        StyleComboBox(cmbEventLog);
+        StyleComboBox(cmbPowerPlan);
+        StyleNumeric(nudEventDays);
+        StyleNumeric(nudMaxEvents);
 
         ApplyGridStyle(gridSummary);
         ApplyGridStyle(gridCpu);
@@ -179,56 +234,130 @@ public partial class Form1 : Form
 
         if (_navTree is not null)
         {
-            _navTree.BackColor = Color.FromArgb(245, 246, 250);
+            _navTree.BackColor = _surface;
             _navTree.ForeColor = ForeColor;
             _navTree.BorderStyle = BorderStyle.None;
             _navTree.FullRowSelect = true;
             _navTree.ShowLines = false;
             _navTree.ShowRootLines = false;
-            _navTree.ShowPlusMinus = true;
+            _navTree.ShowPlusMinus = false;
             _navTree.HideSelection = false;
-            _navTree.ItemHeight = 28;
+            _navTree.ItemHeight = 30;
+            _navTree.Indent = 18;
+            _navTree.DrawMode = TreeViewDrawMode.OwnerDrawAll;
+            _navTree.HotTracking = false;
         }
+
+        if (_navSplit is not null)
+        {
+            _navSplit.BackColor = _border;
+            _navSplit.SplitterWidth = 1;
+            _navSplit.Panel1.BackColor = _surface;
+            _navSplit.Panel2.BackColor = _surfaceAlt;
+        }
+
+        if (_navHeader is not null)
+        {
+            _navHeader.BackColor = _surface;
+        }
+        if (_navHeaderTitle is not null)
+        {
+            _navHeaderTitle.Font = new Font(Font.FontFamily, 10F, FontStyle.Bold);
+            _navHeaderTitle.ForeColor = _text;
+        }
+        if (_navHeaderSubtitle is not null)
+        {
+            _navHeaderSubtitle.Font = new Font(Font.FontFamily, 8.5F, FontStyle.Regular);
+            _navHeaderSubtitle.ForeColor = _muted;
+        }
+
+        if (_layoutPrograms is not null)
+        {
+            foreach (var c in _layoutPrograms.Controls.OfType<LinkLabel>())
+            {
+                c.LinkColor = _accent;
+                c.ActiveLinkColor = Color.FromArgb(10, 88, 202);
+                c.VisitedLinkColor = _accent;
+                c.Font = new Font(Font, FontStyle.Bold);
+            }
+        }
+        if (_aboutPanel is not null)
+        {
+            foreach (var c in _aboutPanel.Controls.OfType<LinkLabel>())
+            {
+                c.LinkColor = _accent;
+                c.ActiveLinkColor = Color.FromArgb(10, 88, 202);
+                c.VisitedLinkColor = _accent;
+            }
+        }
+
+        EnsureContentCards();
     }
 
     private void StyleButton(Button button, bool primary)
     {
         button.FlatStyle = FlatStyle.Flat;
         button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(10, 88, 202) : Color.FromArgb(222, 226, 230);
+        button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(11, 94, 215) : Color.FromArgb(223, 226, 230);
         button.Height = 34;
         button.Cursor = Cursors.Hand;
+        button.Margin = new Padding(0, 0, 10, 0);
 
         if (primary)
         {
-            button.BackColor = Color.FromArgb(13, 110, 253);
+            button.BackColor = _accent;
             button.ForeColor = Color.White;
         }
         else
         {
             button.BackColor = Color.FromArgb(233, 236, 239);
-            button.ForeColor = Color.FromArgb(33, 37, 41);
+            button.ForeColor = _text;
         }
     }
 
     private void ApplyGridStyle(DataGridView grid)
     {
-        grid.BackgroundColor = Color.White;
+        grid.BackgroundColor = _surface;
         grid.BorderStyle = BorderStyle.None;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-        grid.GridColor = Color.FromArgb(222, 226, 230);
+        grid.GridColor = _border;
         grid.EnableHeadersVisualStyles = false;
 
         grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 250);
-        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(33, 37, 41);
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = _text;
         grid.ColumnHeadersDefaultCellStyle.Font = new Font(Font, FontStyle.Bold);
         grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
         grid.ColumnHeadersHeight = 36;
         grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
-        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(207, 226, 255);
-        grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(33, 37, 41);
+        grid.DefaultCellStyle.SelectionBackColor = _accentLight;
+        grid.DefaultCellStyle.SelectionForeColor = _text;
         grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 250);
         grid.RowTemplate.Height = 28;
+        grid.DefaultCellStyle.Padding = new Padding(6, 0, 6, 0);
+    }
+
+    private void StyleTextBox(TextBox box)
+    {
+        box.BorderStyle = BorderStyle.FixedSingle;
+        box.BackColor = _surface;
+        box.ForeColor = _text;
+    }
+
+    private void StyleComboBox(ComboBox combo)
+    {
+        combo.FlatStyle = FlatStyle.Flat;
+        combo.BackColor = _surface;
+        combo.ForeColor = _text;
+        combo.DropDownStyle = ComboBoxStyle.DropDownList;
+    }
+
+    private void StyleNumeric(NumericUpDown nud)
+    {
+        nud.BorderStyle = BorderStyle.FixedSingle;
+        nud.BackColor = _surface;
+        nud.ForeColor = _text;
     }
 
     private void LoadPowerPlans()
@@ -1402,13 +1531,12 @@ public partial class Form1 : Form
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 5,
+                RowCount = 4,
                 Padding = new Padding(10)
             };
             _layoutPrograms.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             _layoutPrograms.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             _layoutPrograms.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
-            _layoutPrograms.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             _layoutPrograms.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
             var lbl = new Label
@@ -1424,17 +1552,9 @@ public partial class Form1 : Form
             _linkCpuZ = new LinkLabel { Dock = DockStyle.Fill, Text = "CPU-Z", TextAlign = ContentAlignment.MiddleLeft };
             _linkCpuZ.LinkClicked += (_, _) => OpenUrl("https://www.cpuid.com/softwares/cpu-z.html");
 
-            var lbl2 = new Label
-            {
-                Dock = DockStyle.Fill,
-                Text = "Uwaga: tu będzie kiedyś defender.",
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
             _layoutPrograms.Controls.Add(lbl, 0, 0);
             _layoutPrograms.Controls.Add(_linkCrystal, 0, 1);
             _layoutPrograms.Controls.Add(_linkCpuZ, 0, 2);
-            _layoutPrograms.Controls.Add(lbl2, 0, 3);
 
             _tabPrograms = new TabPage { Text = "Programy" };
             _tabPrograms.Controls.Add(_layoutPrograms);
@@ -1451,6 +1571,9 @@ public partial class Form1 : Form
 
         _navTree = new TreeView { Dock = DockStyle.Fill };
         _navTree.AfterSelect += navTree_AfterSelect;
+        _navTree.DrawNode += navTree_DrawNode;
+        _navTree.MouseMove += navTree_MouseMove;
+        _navTree.MouseLeave += navTree_MouseLeave;
 
         _navSplit = new SplitContainer
         {
@@ -1460,7 +1583,54 @@ public partial class Form1 : Form
             Panel1MinSize = 170
         };
 
-        _navSplit.Panel1.Controls.Add(_navTree);
+        var sidebar = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        sidebar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
+        sidebar.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        _navHeader = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 10, 12, 10) };
+        _navHeader.Paint += (_, e) =>
+        {
+            var y = _navHeader.ClientSize.Height - 1;
+            using var pen = new Pen(_border);
+            e.Graphics.DrawLine(pen, 0, y, _navHeader.ClientSize.Width, y);
+        };
+
+        var headerLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 34F));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+        headerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+
+        _navHeaderTitle = new Label { Dock = DockStyle.Fill, Text = "MENU", TextAlign = ContentAlignment.MiddleLeft };
+        _navHeaderSubtitle = new Label { Dock = DockStyle.Fill, Text = "Szybka nawigacja", TextAlign = ContentAlignment.MiddleLeft };
+        _navHeaderLogo = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, Margin = new Padding(0) };
+        TrySetLogoImage(_navHeaderLogo);
+
+        headerLayout.Controls.Add(_navHeaderTitle, 0, 0);
+        headerLayout.Controls.Add(_navHeaderSubtitle, 0, 1);
+        headerLayout.Controls.Add(_navHeaderLogo, 1, 0);
+        headerLayout.SetRowSpan(_navHeaderLogo, 2);
+        _navHeader.Controls.Add(headerLayout);
+
+        var treeHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8, 8, 8, 8) };
+        treeHost.Controls.Add(_navTree);
+
+        sidebar.Controls.Add(_navHeader, 0, 0);
+        sidebar.Controls.Add(treeHost, 0, 1);
+        _navSplit.Panel1.Controls.Add(sidebar);
 
         if (layoutRoot.Controls.Contains(tabs))
         {
@@ -1558,6 +1728,336 @@ public partial class Form1 : Form
         finally
         {
             _navSync = false;
+        }
+    }
+
+    private void EnsureHeaderBranding()
+    {
+        if (_picLogo is not null || _lblTitle is not null || _lblSubtitle is not null)
+        {
+            return;
+        }
+
+        var host = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        host.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        host.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
+        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        host.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+
+        _lblTitle = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "DIPC",
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        _lblSubtitle = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "Diagnostyka i serwis Windows",
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        _picLogo = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Margin = new Padding(0, 0, 0, 0)
+        };
+
+        try
+        {
+            var logoPath = Path.Combine(AppContext.BaseDirectory, "dipclogo.png");
+            if (!File.Exists(logoPath))
+            {
+                logoPath = Path.Combine(AppContext.BaseDirectory, "..", "dipclogo.png");
+            }
+            if (!File.Exists(logoPath))
+            {
+                logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dipclogo.png");
+            }
+            if (File.Exists(logoPath))
+            {
+                using var img = Image.FromFile(logoPath);
+                _picLogo.Image = new Bitmap(img);
+            }
+        }
+        catch
+        {
+        }
+
+        host.Controls.Add(_lblTitle, 0, 0);
+        host.Controls.Add(_lblSubtitle, 0, 1);
+        host.Controls.Add(_picLogo, 1, 0);
+        host.SetRowSpan(_picLogo, 2);
+
+        layoutTop.Controls.Add(host, 3, 0);
+        layoutTop.SetRowSpan(host, 2);
+    }
+
+    private void EnsureAboutSection()
+    {
+        if (_aboutPanel is not null)
+        {
+            return;
+        }
+
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 6,
+            Padding = new Padding(12),
+            Margin = new Padding(0)
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        var title = new Label { Dock = DockStyle.Fill, Text = "O programie", TextAlign = ContentAlignment.MiddleLeft };
+        title.Font = new Font(Font.FontFamily, 11F, FontStyle.Bold);
+
+        var lblVersionKey = new Label { Dock = DockStyle.Fill, Text = "Wersja:", TextAlign = ContentAlignment.MiddleLeft };
+        var lblVersionVal = new Label { Dock = DockStyle.Fill, Text = GetAppVersion(), TextAlign = ContentAlignment.MiddleLeft };
+
+        var lblAuthorKey = new Label { Dock = DockStyle.Fill, Text = "Autor:", TextAlign = ContentAlignment.MiddleLeft };
+        var lblAuthorVal = new Label { Dock = DockStyle.Fill, Text = "dziondzio", TextAlign = ContentAlignment.MiddleLeft };
+
+        var lblWebKey = new Label { Dock = DockStyle.Fill, Text = "Strona:", TextAlign = ContentAlignment.MiddleLeft };
+        var linkWeb = new LinkLabel { Dock = DockStyle.Fill, Text = "https://dziondzio.xyz/", TextAlign = ContentAlignment.MiddleLeft };
+        linkWeb.LinkClicked += (_, _) => OpenUrl("https://dziondzio.xyz/");
+
+        var lblGitKey = new Label { Dock = DockStyle.Fill, Text = "GitHub:", TextAlign = ContentAlignment.MiddleLeft };
+        var linkGit = new LinkLabel { Dock = DockStyle.Fill, Text = "https://github.com/Dziondzio/dipc", TextAlign = ContentAlignment.MiddleLeft };
+        linkGit.LinkClicked += (_, _) => OpenUrl("https://github.com/Dziondzio/dipc");
+
+        var btnCopy = new Button { Dock = DockStyle.Fill, Text = "Kopiuj info" };
+        btnCopy.Click += (_, _) =>
+        {
+            var info = $"DIPC\nWersja: {GetAppVersion()}\nAutor: dziondzio\nStrona: https://dziondzio.xyz/\nGitHub: https://github.com/Dziondzio/dipc";
+            try { Clipboard.SetText(info); } catch { }
+            SetStatus("Skopiowano info o programie.");
+        };
+
+        var note = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = "Uwaga: część funkcji wymaga uruchomienia jako administrator (np. czyszczenie logów).",
+            TextAlign = ContentAlignment.TopLeft
+        };
+
+        content.Controls.Add(title, 0, 0);
+        content.SetColumnSpan(title, 3);
+        content.Controls.Add(lblVersionKey, 0, 1);
+        content.Controls.Add(lblVersionVal, 1, 1);
+        content.SetColumnSpan(lblVersionVal, 2);
+        content.Controls.Add(lblAuthorKey, 0, 2);
+        content.Controls.Add(lblAuthorVal, 1, 2);
+        content.SetColumnSpan(lblAuthorVal, 2);
+        content.Controls.Add(lblWebKey, 0, 3);
+        content.Controls.Add(linkWeb, 1, 3);
+        content.SetColumnSpan(linkWeb, 2);
+        content.Controls.Add(lblGitKey, 0, 4);
+        content.Controls.Add(linkGit, 1, 4);
+        content.Controls.Add(btnCopy, 2, 4);
+        content.Controls.Add(note, 0, 5);
+        content.SetColumnSpan(note, 3);
+
+        _aboutPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(0),
+            Margin = new Padding(0),
+            BackColor = Color.FromArgb(248, 249, 250)
+        };
+        _aboutPanel.Paint += (_, e) =>
+        {
+            var rect = _aboutPanel.ClientRectangle;
+            rect.Width -= 1;
+            rect.Height -= 1;
+            using var pen = new Pen(_border);
+            e.Graphics.DrawRectangle(pen, rect);
+        };
+        _aboutPanel.Controls.Add(content);
+
+        layoutOptions.Controls.Add(_aboutPanel, 0, 10);
+        layoutOptions.SetColumnSpan(_aboutPanel, 2);
+    }
+
+    private void EnsureContentCards()
+    {
+        foreach (var tp in tabs.TabPages.Cast<TabPage>())
+        {
+            if (tp.Tag as string == "card")
+            {
+                continue;
+            }
+
+            if (tp.Controls.Count != 1)
+            {
+                continue;
+            }
+
+            var child = tp.Controls[0];
+            if (child is Panel panel && panel.Tag as string == "card")
+            {
+                tp.Tag = "card";
+                continue;
+            }
+
+            var card = CreateCard(child);
+            tp.Controls.Clear();
+            tp.Controls.Add(card);
+            tp.Tag = "card";
+        }
+    }
+
+    private Panel CreateCard(Control child)
+    {
+        var card = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = _surface,
+            Padding = new Padding(12),
+            Margin = new Padding(10),
+            Tag = "card"
+        };
+        card.Paint += (_, e) =>
+        {
+            var rect = card.ClientRectangle;
+            rect.Width -= 1;
+            rect.Height -= 1;
+            using var pen = new Pen(_border);
+            e.Graphics.DrawRectangle(pen, rect);
+        };
+
+        child.Dock = DockStyle.Fill;
+        card.Controls.Add(child);
+        return card;
+    }
+
+    private void navTree_DrawNode(object? sender, DrawTreeNodeEventArgs e)
+    {
+        if (_navTree is null || e.Node is null)
+        {
+            return;
+        }
+
+        var node = e.Node;
+        var isGroup = node.Parent is null;
+        var isSelected = (e.State & TreeNodeStates.Selected) != 0;
+        var bounds = new Rectangle(0, e.Bounds.Top, _navTree.ClientSize.Width, e.Bounds.Height);
+        var back = _navTree.BackColor;
+        if (!isGroup)
+        {
+            if (isSelected)
+            {
+                back = _accentLight;
+            }
+            else if (ReferenceEquals(node, _navHoverNode))
+            {
+                back = Color.FromArgb(243, 245, 248);
+            }
+        }
+
+        using (var b = new SolidBrush(back))
+        {
+            e.Graphics.FillRectangle(b, bounds);
+        }
+
+        if (isSelected && !isGroup)
+        {
+            using var stripe = new SolidBrush(_accent);
+            e.Graphics.FillRectangle(stripe, new Rectangle(0, bounds.Top, 4, bounds.Height));
+        }
+
+        var font = isGroup ? (_navGroupFont ?? Font) : Font;
+        var fore = isGroup ? _muted : _text;
+        if (isSelected && !isGroup)
+        {
+            fore = _text;
+        }
+
+        var text = isGroup ? node.Text.ToUpperInvariant() : node.Text;
+        var left = e.Bounds.Left + (isGroup ? 6 : 8);
+        var textBounds = new Rectangle(left, e.Bounds.Top + 5, _navTree.ClientSize.Width - left - 10, e.Bounds.Height - 6);
+        TextRenderer.DrawText(e.Graphics, text, font, textBounds, fore, TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter);
+
+        if (isGroup)
+        {
+            using var pen = new Pen(_border);
+            var y = bounds.Bottom - 1;
+            e.Graphics.DrawLine(pen, 10, y, bounds.Right - 10, y);
+        }
+    }
+
+    private void navTree_MouseMove(object? sender, MouseEventArgs e)
+    {
+        if (_navTree is null)
+        {
+            return;
+        }
+
+        var hit = _navTree.HitTest(e.Location);
+        var node = hit.Node;
+        if (node is not null && node.Parent is null)
+        {
+            node = null;
+        }
+
+        if (!ReferenceEquals(_navHoverNode, node))
+        {
+            _navHoverNode = node;
+            _navTree.Invalidate();
+        }
+    }
+
+    private void navTree_MouseLeave(object? sender, EventArgs e)
+    {
+        if (_navTree is null)
+        {
+            return;
+        }
+
+        if (_navHoverNode is not null)
+        {
+            _navHoverNode = null;
+            _navTree.Invalidate();
+        }
+    }
+
+    private void TrySetLogoImage(PictureBox box)
+    {
+        try
+        {
+            var logoPath = Path.Combine(AppContext.BaseDirectory, "dipclogo.png");
+            if (!File.Exists(logoPath))
+            {
+                logoPath = Path.Combine(AppContext.BaseDirectory, "..", "dipclogo.png");
+            }
+            if (!File.Exists(logoPath))
+            {
+                logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dipclogo.png");
+            }
+            if (File.Exists(logoPath))
+            {
+                using var img = Image.FromFile(logoPath);
+                box.Image = new Bitmap(img);
+            }
+        }
+        catch
+        {
         }
     }
 
@@ -2234,7 +2734,7 @@ public partial class Form1 : Form
         grid.MultiSelect = false;
         grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         grid.RowHeadersVisible = false;
-        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
+        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         grid.BackgroundColor = SystemColors.Window;
     }
 

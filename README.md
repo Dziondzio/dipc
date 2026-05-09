@@ -5,6 +5,8 @@
 [![Build](https://github.com/Dziondzio/dipc/actions/workflows/release.yml/badge.svg)](https://github.com/Dziondzio/dipc/actions/workflows/release.yml)
 [![License](https://img.shields.io/github/license/Dziondzio/dipc)](LICENSE)
 
+![Preview](https://github.com/Dziondzio/dipc/Images/v/100.png)
+
 Windowsowe narzędzie (WinForms, .NET 8) do szybkiego sprawdzania informacji o komputerze, temperatur, zdarzeń, dysków (SMART/sensory) oraz do uruchamiania komend serwisowych.
 
 ## Pobieranie
@@ -109,3 +111,8 @@ To narzędzie uruchamia komendy systemowe i potrafi czyścić logi zdarzeń. Uż
 ## Dla forków
 
 Jeśli zmienisz owner/repo, podmień linki w badge’ach na górze tego README na swoje (albo usuń badge’y).
+
+
+## Bugi
+- [ X ] Pamięc karty graficznj jest nieprawidłowy
+

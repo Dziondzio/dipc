@@ -58,7 +58,13 @@ $isccCandidates = @(
 $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $iss = Join-Path $root "DIPC.iss"
 
-if ((Test-Path $iss) -and -not [string]::IsNullOrWhiteSpace($iscc)) {
+if (-not (Test-Path $iss)) {
+    Write-Host "  Pominięto (brak pliku: $iss)."
+} elseif ([string]::IsNullOrWhiteSpace($iscc)) {
+    Write-Host "  Pominięto (brak Inno Setup: ISCC.exe)."
+    Write-Host "  Zainstaluj Inno Setup 6 i uruchom ponownie skrypt."
+    Write-Host "  Przykład (winget): winget install InnoSetup.InnoSetup"
+} else {
     & $iscc "/DMyAppVersion=$version" "/DSourceExe=$portablePath" $iss | Out-Host
     $installerPath = Join-Path $outFull "DIPC_Installer_$version.exe"
     if (Test-Path $installerPath) {
@@ -69,6 +75,4 @@ if ((Test-Path $iss) -and -not [string]::IsNullOrWhiteSpace($iscc)) {
     } else {
         Write-Host "  Zbudowano installer (sprawdź folder: $outFull)"
     }
-} else {
-    Write-Host "  Pominięto (brak DIPC.iss lub ISCC.exe)."
 }

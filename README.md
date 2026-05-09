@@ -1,16 +1,16 @@
 # DIPC (Windows)
 
-[![Release](https://img.shields.io/github/v/release/konra/dipc?display_name=tag&sort=semver)](https://github.com/konra/dipc/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/konra/dipc/total)](https://github.com/konra/dipc/releases)
-[![Build](https://github.com/konra/dipc/actions/workflows/release.yml/badge.svg)](https://github.com/konra/dipc/actions/workflows/release.yml)
-[![License](https://img.shields.io/github/license/konra/dipc)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Dziondzio/dipc?display_name=tag&sort=semver)](https://github.com/Dziondzio/dipc/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Dziondzio/dipc/total)](https://github.com/Dziondzio/dipc/releases)
+[![Build](https://github.com/Dziondzio/dipc/actions/workflows/release.yml/badge.svg)](https://github.com/Dziondzio/dipc/actions/workflows/release.yml)
+[![License](https://img.shields.io/github/license/Dziondzio/dipc)](LICENSE)
 
 Windowsowe narzędzie (WinForms, .NET 8) do szybkiego sprawdzania informacji o komputerze, temperatur, zdarzeń, dysków (SMART/sensory) oraz do uruchamiania komend serwisowych.
 
 ## Pobieranie
 
 Pobierz najnowszą wersję z GitHub Releases:
-- [Latest Release](https://github.com/konra/dipc/releases/latest)
+- [Latest Release](https://github.com/Dziondzio/dipc/releases/latest)
 
 W assets są zwykle dwa pliki:
 - `DIPC_Portable_<wersja>.exe` (portable, single-file)
@@ -30,7 +30,7 @@ W assets są zwykle dwa pliki:
 
 Aplikacja sprawdza aktualizacje z GitHub Releases (`releases/latest`) i pobiera pliki z assets.
 
-- Domyślnie repo do aktualizacji: `konra/dipc` (jeśli robisz fork, możesz zmienić)
+- Domyślnie repo do aktualizacji: `Dziondzio/dipc` (jeśli robisz fork, możesz zmienić)
 - Możesz to zmienić bez przebudowy ustawiając zmienną środowiskową:
   - `DIPC_GITHUB_REPO=owner/nazwa-repo`
 
